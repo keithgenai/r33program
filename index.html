@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>跑步教練週課表生成器 (雙選單切換版)</title>
+  <title>跑步教練週課表</title>
   <style>
     :root {
       --primary: #2563eb;
-      --primary-hover: #1d4ed8;
       --bg: #f8fafc;
       --card-bg: #ffffff;
       --border: #e2e8f0;
@@ -15,7 +14,6 @@
       --text-muted: #64748b;
       --accent: #f1f5f9;
       --success: #16a34a;
-      --student-color: #7c3aed;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
@@ -93,26 +91,32 @@
     .btn-danger { background: #fee2e2; color: #dc2626; padding: 0.2rem 0.4rem; font-size: 0.75rem; }
     .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
 
-    .preview-box { background: #1e293b; color: #f8fafc; border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap; flex: 1; overflow-y: auto; }
+    .preview-box { background: #1e293b; color: #f8fafc; border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; flex: 1; overflow-y: auto; }
     .toast { position: fixed; bottom: 20px; right: 20px; background: #0f172a; color: #fff; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.875rem; display: none; z-index: 100; }
+
+    /* --- 學員專用隱藏樣式 --- */
+    body.student-mode .coach-only { display: none !important; }
+    body.student-mode .app-container { grid-template-columns: 1fr; max-width: 800px; }
+    body.student-mode .preview-box { min-height: 520px; font-size: 1rem; }
   </style>
 </head>
 <body>
 
   <header>
     <div class="header-title">
-      <h1>🏃‍♂️ 教練週課表生成器</h1>
-      <span class="badge">雙選單切換版</span>
-      <span class="status-tag status-offline" id="statusTag">☁️ 未連線</span>
+      <h1 id="appMainTitle">🏃‍♂️ 跑步教練週課表</h1>
+      <span class="badge coach-only">教練控制台</span>
+      <span class="status-tag status-offline coach-only" id="statusTag">☁️ 未連線</span>
     </div>
     <div style="display:flex; gap:0.5rem;">
-      <button class="btn btn-primary" onclick="syncClassesToCloud()">☁️ 儲存所有課表至雲端</button>
-      <button class="btn btn-success" onclick="copyTextToClipboard()">📋 複製目前課表</button>
+      <button class="btn btn-primary coach-only" onclick="syncClassesToCloud()">☁️ 儲存所有課表至雲端</button>
+      <button class="btn btn-outline coach-only" onclick="copyExclusiveStudentLink()">🔗 複製此學員專屬連結</button>
+      <button class="btn btn-success" onclick="copyTextToClipboard()">📋 複製此課表</button>
     </div>
   </header>
 
-  <!-- Google API Banner -->
-  <div class="config-banner">
+  <!-- Google API Banner (Coach Only) -->
+  <div class="config-banner coach-only">
     <strong>🔗 Google Apps Script URL:</strong>
     <input type="text" id="apiUrlInput" placeholder="貼上 Web App 網址...">
     <button class="btn btn-primary btn-sm" onclick="saveApiUrl()">💾 儲存連線</button>
@@ -122,12 +126,11 @@
 
   <div class="app-container">
     
-    <!-- LEFT PANEL -->
+    <!-- LEFT CONTROLS PANEL -->
     <div>
 
-      <!-- Dual Dropdown Navigation Bar -->
-      <div class="selector-bar">
-        <!-- Dropdown 1: Category -->
+      <!-- Dual Dropdown Navigation Bar (Hidden for Students) -->
+      <div class="selector-bar coach-only">
         <div class="selector-group">
           <label>1️⃣ 選擇類別</label>
           <select id="categoryDropdown" onchange="onCategoryChange(this.value)">
@@ -136,13 +139,11 @@
           </select>
         </div>
 
-        <!-- Dropdown 2: Specific Class or Student Name -->
         <div class="selector-group">
-          <label id="subSelectLabel">2️⃣ 選擇班別名稱</label>
+          <label id="subSelectLabel">2️⃣ 選擇名稱</label>
           <select id="itemDropdown" onchange="onItemChange(this.value)"></select>
         </div>
 
-        <!-- Add Button -->
         <div style="align-self: flex-end;">
           <button class="btn btn-outline" onclick="addNewClassOrStudent()" style="height: 36px; white-space: nowrap; background:#f1f5f9; border-color:#cbd5e1;">
             ＋ 新增學員/班別
@@ -150,10 +151,10 @@
         </div>
       </div>
 
-      <!-- Date Selector -->
+      <!-- Date Selector (Visible for both Coach & Student) -->
       <div class="date-card">
         <div style="flex:1;">
-          <label style="color:#166534; font-weight:700;">🗓️ 選擇課表日期 / 週次 (Log)</label>
+          <label style="color:#166534; font-weight:700;">🗓️ 選擇課表日期 / 週次</label>
           <input type="week" id="weekPicker" onchange="onWeekDateChange(this.value)" style="margin-top:0.25rem;">
         </div>
         <div style="flex:1;">
@@ -162,8 +163,8 @@
         </div>
       </div>
 
-      <!-- Current Class / Student Setting -->
-      <div class="panel" style="margin-bottom: 1.5rem;">
+      <!-- Current Class / Student Setting (Coach Only) -->
+      <div class="panel coach-only" style="margin-bottom: 1.5rem;">
         <div class="panel-header">
           <span class="panel-title" id="panelTypeTitle">⚙️ 目前設定</span>
           <button class="btn btn-danger btn-sm" onclick="deleteCurrentClass()">🗑️ 刪除此紀錄</button>
@@ -186,16 +187,16 @@
         </div>
       </div>
 
-      <!-- Days Schedule -->
-      <div class="panel" style="margin-bottom: 1.5rem;">
+      <!-- Days Schedule (Coach Only) -->
+      <div class="panel coach-only" style="margin-bottom: 1.5rem;">
         <div class="panel-header">
           <span class="panel-title">📅 每日訓練編排</span>
         </div>
         <div id="daysContainer"></div>
       </div>
 
-      <!-- Library Panel -->
-      <div class="panel">
+      <!-- Library Panel (Coach Only) -->
+      <div class="panel coach-only">
         <div class="panel-header">
           <span class="panel-title">📦 雲端 Program 常用庫</span>
         </div>
@@ -212,13 +213,13 @@
       </div>
     </div>
 
-    <!-- RIGHT PANEL -->
+    <!-- RIGHT PANEL: Preview Box -->
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-title">📱 課表預覽區</span>
-        <button class="btn btn-success btn-sm" onclick="copyTextToClipboard()">📋 複製此課表</button>
+        <span class="panel-title" id="previewPanelTitle">📱 課表內容區</span>
+        <button class="btn btn-success btn-sm" onclick="copyTextToClipboard()">📋 複製課表</button>
       </div>
-      <div class="preview-box" id="previewBox"></div>
+      <div class="preview-box" id="previewBox">載入中...</div>
     </div>
 
   </div>
@@ -236,9 +237,13 @@
     ];
     
     let activeClassId = 'c1';
-    let currentCategory = 'group'; // 'group' 或 'student'
+    let currentCategory = 'group';
     let programLibrary = [];
     let apiUrl = '';
+    
+    // 學員專屬模式變數
+    let isStudentView = false;
+    let targetStudentName = '';
 
     function createEmptyDays() {
       return weekDays.map(day => ({ dayName: day, selectedLibId: '', customContent: '' }));
@@ -254,15 +259,40 @@
     }
 
     function init() {
+      const urlParams = new URLSearchParams(window.location.search);
+      isStudentView = urlParams.get('view') === 'student';
+      targetStudentName = urlParams.get('name') || '';
+
+      if (isStudentView) {
+        document.body.classList.add('student-mode');
+        document.getElementById('appMainTitle').textContent = `🏃‍♂️ ${targetStudentName || '學員'} - 個人課表`;
+      }
+
       apiUrl = localStorage.getItem('gsheet_api_url') || '';
       document.getElementById('apiUrlInput').value = apiUrl;
       document.getElementById('weekPicker').value = currentWeekDate;
       updateStatusTag();
 
-      updateDropdowns();
-      loadActiveTabData();
+      if (apiUrl) {
+        fetchFromGoogleSheets();
+      } else {
+        updateDropdowns();
+        loadActiveTabData();
+      }
+    }
 
-      if (apiUrl) fetchFromGoogleSheets();
+    // 教練產生學員「專屬連結」
+    function copyExclusiveStudentLink() {
+      const activeClass = classesData.find(c => c.id === activeClassId);
+      if (!activeClass) return alert('未找到目前學員/班別');
+
+      const baseUrl = window.location.href.split('?')[0];
+      // 將學員名稱放入網址參數，達到專屬隔離效果
+      const exclusiveUrl = `${baseUrl}?view=student&name=${encodeURIComponent(activeClass.className)}`;
+      
+      navigator.clipboard.writeText(exclusiveUrl).then(() => {
+        showToast(`已複製【${activeClass.className}】專屬連結！此連結無法看到其他人課表。`);
+      });
     }
 
     function setCurrentWeek() {
@@ -272,34 +302,41 @@
     }
 
     function onWeekDateChange(val) {
-      saveCurrentState();
+      if (!isStudentView) saveCurrentState();
       currentWeekDate = val;
-      
-      const activeClass = classesData.find(c => c.id === activeClassId);
-      const targetName = activeClass ? activeClass.className : 'A 班 (進階)';
-      const targetType = activeClass ? activeClass.type : 'group';
 
-      let existingRecord = classesData.find(c => c.className === targetName && c.weekDate === currentWeekDate);
-      if (!existingRecord) {
-        const newId = 'c_' + Date.now();
-        existingRecord = {
-          id: newId,
-          className: targetName,
-          type: targetType,
-          weekDate: currentWeekDate,
-          title: `🏃 ${currentWeekDate} Training Program`,
-          groupNotes: '',
-          coachTips: '',
-          days: createEmptyDays()
-        };
-        classesData.push(existingRecord);
+      if (isStudentView && targetStudentName) {
+        // 學員模式：自動搜尋該名稱在該週的資料
+        let match = classesData.find(c => c.className === targetStudentName && c.weekDate === currentWeekDate);
+        if (match) {
+          activeClassId = match.id;
+        } else {
+          activeClassId = ''; // 該週無課表
+        }
+      } else {
+        // 教練模式
+        const activeClass = classesData.find(c => c.id === activeClassId);
+        const targetName = activeClass ? activeClass.className : 'A 班 (進階)';
+        const targetType = activeClass ? activeClass.type : 'group';
+
+        let existingRecord = classesData.find(c => c.className === targetName && c.weekDate === currentWeekDate);
+        if (!existingRecord) {
+          const newId = 'c_' + Date.now();
+          existingRecord = {
+            id: newId, className: targetName, type: targetType, weekDate: currentWeekDate,
+            title: `🏃 ${currentWeekDate} Training Program`, groupNotes: '', coachTips: '', days: createEmptyDays()
+          };
+          classesData.push(existingRecord);
+        }
+        activeClassId = existingRecord.id;
+        updateDropdowns();
       }
-      activeClassId = existingRecord.id;
-      updateDropdowns();
+
       loadActiveTabData();
     }
 
     function saveCurrentState() {
+      if (isStudentView) return;
       const activeClass = classesData.find(c => c.id === activeClassId);
       if (activeClass) {
         activeClass.title = document.getElementById('programTitle').value;
@@ -309,30 +346,21 @@
       }
     }
 
-    /* 切換左邊下拉選單（類別：團體班別 / 個人學員） */
     function onCategoryChange(category) {
+      if (isStudentView) return;
       saveCurrentState();
       currentCategory = category;
 
-      // 找到該類別在當前週次的第一個項目
       const itemsInCat = classesData.filter(c => c.weekDate === currentWeekDate && c.type === currentCategory);
       if (itemsInCat.length > 0) {
         activeClassId = itemsInCat[0].id;
       } else {
-        // 如果當前週次沒有，自動新增一個預設項目
         const defaultName = currentCategory === 'student' ? '新學員' : '新班別';
         const newId = 'c_' + Date.now();
-        const newObj = {
-          id: newId,
-          className: defaultName,
-          type: currentCategory,
-          weekDate: currentWeekDate,
-          title: `🏃 ${currentWeekDate} Training Program`,
-          groupNotes: '',
-          coachTips: '',
-          days: createEmptyDays()
-        };
-        classesData.push(newObj);
+        classesData.push({
+          id: newId, className: defaultName, type: currentCategory, weekDate: currentWeekDate,
+          title: `🏃 ${currentWeekDate} Training Program`, groupNotes: '', coachTips: '', days: createEmptyDays()
+        });
         activeClassId = newId;
       }
 
@@ -340,19 +368,17 @@
       loadActiveTabData();
     }
 
-    /* 切換右邊下拉選單（特定班別或學員） */
     function onItemChange(selectedId) {
+      if (isStudentView) return;
       saveCurrentState();
       activeClassId = selectedId;
       loadActiveTabData();
     }
 
-    /* 更新兩個 Dropdown 選單的內容 */
     function updateDropdowns() {
+      if (isStudentView) return;
       const activeClass = classesData.find(c => c.id === activeClassId);
-      if (activeClass) {
-        currentCategory = activeClass.type || 'group';
-      }
+      if (activeClass) currentCategory = activeClass.type || 'group';
 
       document.getElementById('categoryDropdown').value = currentCategory;
       document.getElementById('subSelectLabel').textContent = currentCategory === 'student' ? '2️⃣ 選擇學員姓名' : '2️⃣ 選擇班別名稱';
@@ -360,7 +386,6 @@
       const itemDropdown = document.getElementById('itemDropdown');
       itemDropdown.innerHTML = '';
 
-      // 只過濾出當前週次 + 當前類別的選項
       const filteredList = classesData.filter(c => c.weekDate === currentWeekDate && (c.type || 'group') === currentCategory);
 
       filteredList.forEach(item => {
@@ -383,14 +408,9 @@
 
       const newId = 'c_' + Date.now();
       classesData.push({
-        id: newId,
-        className: name,
-        type: type,
-        weekDate: currentWeekDate,
+        id: newId, className: name, type: type, weekDate: currentWeekDate,
         title: isStudent ? `🏃 ${name} 個人訓練課表` : `🏃 ${name} 週課表`,
-        groupNotes: '',
-        coachTips: '',
-        days: createEmptyDays()
+        groupNotes: '', coachTips: '', days: createEmptyDays()
       });
 
       activeClassId = newId;
@@ -425,23 +445,27 @@
 
     function loadActiveTabData() {
       const activeClass = classesData.find(c => c.id === activeClassId);
-      if (!activeClass) return;
 
-      document.getElementById('classNameInput').value = activeClass.className;
-      document.getElementById('programTitle').value = activeClass.title || '';
-      document.getElementById('groupNotes').value = activeClass.groupNotes || '';
-      document.getElementById('coachTips').value = activeClass.coachTips || '';
+      if (!isStudentView && activeClass) {
+        document.getElementById('classNameInput').value = activeClass.className;
+        document.getElementById('programTitle').value = activeClass.title || '';
+        document.getElementById('groupNotes').value = activeClass.groupNotes || '';
+        document.getElementById('coachTips').value = activeClass.coachTips || '';
 
-      const isStudent = activeClass.type === 'student';
-      document.getElementById('panelTypeTitle').textContent = isStudent ? '👤 學員設定' : '👥 班別設定';
-      document.getElementById('notesLabel').textContent = isStudent ? '🎯 目標 / 心率 / 個人備註' : '👥 配速 / 名單備註';
+        const isStudent = activeClass.type === 'student';
+        document.getElementById('panelTypeTitle').textContent = isStudent ? '👤 學員設定' : '👥 班別設定';
+        document.getElementById('notesLabel').textContent = isStudent ? '🎯 目標 / 心率 / 個人備註' : '👥 配速 / 名單備註';
 
-      renderDaysInputs();
+        renderDaysInputs();
+      }
+
       renderOutput();
     }
 
     function renderDaysInputs() {
+      if (isStudentView) return;
       const activeClass = classesData.find(c => c.id === activeClassId);
+      if (!activeClass) return;
       const container = document.getElementById('daysContainer');
       container.innerHTML = '';
 
@@ -496,7 +520,12 @@
 
     function renderOutput() {
       const activeClass = classesData.find(c => c.id === activeClassId);
-      if (!activeClass) return;
+
+      if (!activeClass) {
+        document.getElementById('previewBox').textContent = isStudentView ? 
+          `未找到【${targetStudentName}】在 ${currentWeekDate} 週的課表。` : '尚無課表資料。';
+        return;
+      }
 
       const typeTag = activeClass.type === 'student' ? '👤 學員' : '📌 班別';
       let text = `=========================\n${typeTag}：【${activeClass.className}】 (${activeClass.weekDate})\n${activeClass.title}\n=========================\n\n`;
@@ -506,8 +535,8 @@
       });
 
       const noteLabel = activeClass.type === 'student' ? '🎯 目標 / 心率備註' : '👥 配速 / 名單備註';
-      if (activeClass.groupNotes.trim()) text += `\n【${noteLabel}】\n${activeClass.groupNotes}\n`;
-      if (activeClass.coachTips.trim()) text += `\n【💡 教練提醒】\n${activeClass.coachTips}\n`;
+      if (activeClass.groupNotes && activeClass.groupNotes.trim()) text += `\n【${noteLabel}】\n${activeClass.groupNotes}\n`;
+      if (activeClass.coachTips && activeClass.coachTips.trim()) text += `\n【💡 教練提醒】\n${activeClass.coachTips}\n`;
 
       document.getElementById('previewBox').textContent = text;
     }
@@ -529,7 +558,7 @@
 
     async function fetchFromGoogleSheets() {
       if (!apiUrl) return;
-      document.getElementById('loadingSpinner').style.display = 'inline';
+      if (!isStudentView) document.getElementById('loadingSpinner').style.display = 'inline';
       try {
         const resp = await fetch(apiUrl);
         const resData = await resp.json();
@@ -537,16 +566,14 @@
         if (resData.programs) programLibrary = resData.programs;
         if (resData.classes && resData.classes.length > 0) {
           classesData = resData.classes;
-          onWeekDateChange(currentWeekDate);
         }
 
-        renderLibrary();
-        showToast('已成功載入雲端歷程資料！');
+        onWeekDateChange(currentWeekDate);
+        if (!isStudentView) renderLibrary();
       } catch (err) {
         console.error(err);
-        alert('同步失敗，請檢查 Web App 網址是否正確。');
       } finally {
-        document.getElementById('loadingSpinner').style.display = 'none';
+        if (!isStudentView) document.getElementById('loadingSpinner').style.display = 'none';
       }
     }
 
@@ -554,7 +581,7 @@
       if (!apiUrl) return alert('請先填寫並儲存 Web App 網址！');
       saveCurrentState();
       
-      showToast('正在儲存所有課表與 Log 至雲端...');
+      showToast('正在儲存所有課表至雲端...');
       try {
         await fetch(apiUrl, {
           method: 'POST',
@@ -562,7 +589,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'save_classes', classes: classesData })
         });
-        showToast('✅ 班別與個人課表已成功存入 Google Sheets！');
+        showToast('✅ 課表已更新！學員開啟專屬連結即可看到最新內容。');
       } catch (e) {
         alert('儲存失敗：' + e.message);
       }
@@ -577,9 +604,7 @@
 
       if (apiUrl) {
         await fetch(apiUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'add_program', ...newObj })
         });
         setTimeout(fetchFromGoogleSheets, 1200);
@@ -596,9 +621,7 @@
       if (!confirm('確定刪除這個常用 Program？')) return;
       if (apiUrl) {
         await fetch(apiUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'delete_program', id })
         });
         setTimeout(fetchFromGoogleSheets, 1200);
