@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>跑步教練週課表生成器 (Google Sheets DB 版)</title>
+  <title>跑步教練週課表生成器 (跨裝置雲端同步版)</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -15,331 +15,79 @@
       --text-muted: #64748b;
       --accent: #f1f5f9;
       --success: #16a34a;
-      --warning: #d97706;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
 
     header {
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--border);
-      padding: 1.25rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 1.25rem 2rem;
+      display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
+    .header-title { display: flex; align-items: center; gap: 0.75rem; }
+    .header-title h1 { font-size: 1.35rem; font-weight: 700; }
+    .badge { background: #dbeafe; color: var(--primary); font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 9999px; }
+    
+    .status-tag { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; }
+    .status-online { color: #16a34a; background: #dcfce7; }
+    .status-offline { color: #d97706; background: #fef3c7; }
 
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .header-title h1 {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .badge {
-      background: #dbeafe;
-      color: var(--primary);
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 0.2rem 0.6rem;
-      border-radius: 9999px;
-    }
-
-    .status-tag {
-      font-size: 0.75rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-
-    .status-online {
-      color: #16a34a;
-      background: #dcfce7;
-    }
-
-    .status-offline {
-      color: #d97706;
-      background: #fef3c7;
-    }
-
-    /* API Config Banner */
     .config-banner {
-      background: #eff6ff;
-      border-bottom: 1px solid #bfdbfe;
-      padding: 0.75rem 2rem;
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-      font-size: 0.85rem;
+      background: #eff6ff; border-bottom: 1px solid #bfdbfe; padding: 0.75rem 2rem;
+      display: flex; gap: 0.75rem; align-items: center; font-size: 0.85rem;
     }
-
-    .config-banner input {
-      flex: 1;
-      padding: 0.4rem 0.6rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.85rem;
-    }
+    .config-banner input { flex: 1; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
 
     .app-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      padding: 1.5rem;
-      max-width: 1500px;
-      margin: 0 auto;
-      width: 100%;
-      flex: 1;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 1.5rem;
+      max-width: 1500px; margin: 0 auto; width: 100%; flex: 1;
     }
-
-    @media (max-width: 992px) {
-      .app-container {
-        grid-template-columns: 1fr;
-      }
-    }
+    @media (max-width: 992px) { .app-container { grid-template-columns: 1fr; } }
 
     .panel {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.5rem; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
-
     .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.25rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 2px solid var(--accent);
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 2px solid var(--accent);
     }
+    .panel-title { font-size: 1.1rem; font-weight: 700; }
 
-    .panel-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    /* Tabs */
+    .tabs-container { display: flex; align-items: center; gap: 0.5rem; border-bottom: 2px solid var(--border); margin-bottom: 1rem; overflow-x: auto; padding-bottom: 2px; }
+    .tab-btn {
+      padding: 0.5rem 1rem; border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0;
+      background: #f1f5f9; color: var(--text-muted); font-weight: 600; font-size: 0.875rem; cursor: pointer; white-space: nowrap;
     }
+    .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .tab-add-btn { background: #e2e8f0; border: none; padding: 0.4rem 0.75rem; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
 
-    /* Forms */
-    .section-block {
-      margin-bottom: 1.5rem;
-      background: #fafafa;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem;
-    }
+    /* Forms & Inputs */
+    .day-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem; margin-bottom: 0.75rem; }
+    .day-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .day-name { font-weight: 700; font-size: 0.95rem; color: var(--primary); }
 
-    .section-block-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+    .form-group { margin-bottom: 0.75rem; }
+    label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem; }
+    input, select, textarea { width: 100%; padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.875rem; }
+    textarea { resize: vertical; min-height: 60px; }
 
-    .day-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.85rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .day-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-
-    .day-name {
-      font-weight: 700;
-      font-size: 0.95rem;
-      color: var(--primary);
-    }
-
-    .form-group {
-      margin-bottom: 0.5rem;
-    }
-
-    .form-group:last-child {
-      margin-bottom: 0;
-    }
-
-    label {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 0.25rem;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 0.5rem 0.65rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.875rem;
-      background: #fff;
-      color: var(--text);
-      transition: border-color 0.15s;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 60px;
-    }
-
-    /* Program Library */
-    .lib-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: 0.75rem;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      margin-bottom: 0.5rem;
-      gap: 0.5rem;
-    }
-
-    .lib-info {
-      flex: 1;
-    }
-
-    .lib-title {
-      font-weight: 600;
-      font-size: 0.85rem;
-      color: var(--primary);
-    }
-
-    .lib-desc {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      white-space: pre-wrap;
-      margin-top: 0.25rem;
-    }
+    /* Library */
+    .lib-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 0.75rem; background: #fff; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 0.5rem; }
+    .lib-title { font-weight: 600; font-size: 0.85rem; color: var(--primary); }
+    .lib-desc { font-size: 0.75rem; color: var(--text-muted); white-space: pre-wrap; margin-top: 0.25rem; }
 
     /* Buttons */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      padding: 0.5rem 0.85rem;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s;
-    }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: #fee2e2; color: #dc2626; padding: 0.2rem 0.4rem; font-size: 0.75rem; }
+    .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
 
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: var(--primary-hover);
-    }
-
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-
-    .btn-outline:hover {
-      background: var(--accent);
-    }
-
-    .btn-success {
-      background: var(--success);
-      color: white;
-    }
-
-    .btn-danger {
-      background: #fee2e2;
-      color: #dc2626;
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
-    }
-
-    .btn-sm {
-      padding: 0.3rem 0.6rem;
-      font-size: 0.75rem;
-    }
-
-    .preview-box {
-      background: #1e293b;
-      color: #f8fafc;
-      border-radius: 8px;
-      padding: 1.25rem;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 0.875rem;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      flex: 1;
-      overflow-y: auto;
-      border: 1px solid #334155;
-    }
-
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #0f172a;
-      color: #fff;
-      padding: 0.75rem 1.25rem;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      display: none;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-      z-index: 100;
-    }
-
-    .flex-row {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .loading-spinner {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      display: none;
-    }
+    .preview-box { background: #1e293b; color: #f8fafc; border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap; flex: 1; overflow-y: auto; }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #0f172a; color: #fff; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.875rem; display: none; z-index: 100; }
   </style>
 </head>
 <body>
@@ -347,508 +95,400 @@
   <header>
     <div class="header-title">
       <h1>🏃‍♂️ 教練週課表生成器</h1>
-      <span class="badge">Google Sheets DB 版</span>
-      <span class="status-tag status-offline" id="statusTag">☁️ 本地模式</span>
+      <span class="badge">全雲端同步版</span>
+      <span class="status-tag status-offline" id="statusTag">☁️ 未連線</span>
     </div>
-    <div class="flex-row">
-      <button class="btn btn-outline" onclick="loadSampleData()">📥 載入範例課表</button>
-      <button class="btn btn-success" onclick="copyTextToClipboard()">📋 一鍵複製給學員</button>
+    <div style="display:flex; gap:0.5rem;">
+      <button class="btn btn-primary" onclick="syncClassesToCloud()">☁️ 儲存班別課表至雲端</button>
+      <button class="btn btn-success" onclick="copyTextToClipboard()">📋 複製目前班別課表</button>
     </div>
   </header>
 
-  <!-- Google Apps Script URL Setting Banner -->
+  <!-- Google API Banner -->
   <div class="config-banner">
-    <strong style="white-space: nowrap;">🔗 Google Apps Script Web App URL:</strong>
-    <input type="text" id="apiUrlInput" placeholder="請貼上部署後取得的 Web App 網址 (https://script.google.com/macros/s/.../exec)">
+    <strong>🔗 Google Apps Script URL:</strong>
+    <input type="text" id="apiUrlInput" placeholder="貼上 Web App 網址...">
     <button class="btn btn-primary btn-sm" onclick="saveApiUrl()">💾 儲存連線</button>
-    <button class="btn btn-outline btn-sm" onclick="fetchFromGoogleSheets()">🔄 同步雲端 DB</button>
-    <span class="loading-spinner" id="loadingSpinner">⌛ 連線中...</span>
+    <button class="btn btn-outline btn-sm" onclick="fetchFromGoogleSheets()">🔄 從雲端載入最新資料</button>
+    <span id="loadingSpinner" style="display:none; font-size:0.8rem; color:#64748b;">⌛ 雲端讀取中...</span>
   </div>
 
   <div class="app-container">
     
-    <!-- LEFT PANEL: CONTROLS & MANUAL INPUT -->
-    <div class="left-column">
-      
-      <!-- Quick Presets & Options -->
+    <!-- LEFT PANEL -->
+    <div>
+      <div class="tabs-container" id="tabsContainer"></div>
+
+      <!-- Current Class Setting -->
       <div class="panel" style="margin-bottom: 1.5rem;">
         <div class="panel-header">
-          <span class="panel-title">⚙️ 課表基本設定</span>
+          <span class="panel-title">⚙️ 目前班別設定</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteCurrentClass()">🗑️ 刪除此班別</button>
+        </div>
+        <div class="form-group">
+          <label>班別名稱 (Class Name)</label>
+          <input type="text" id="classNameInput" oninput="updateClassName(this.value)">
         </div>
         <div class="form-group">
           <label>標題 / 週次 (Title)</label>
-          <input type="text" id="programTitle" value="🏃 Week Training Program" oninput="saveCurrentState(); renderOutput();">
+          <input type="text" id="programTitle" oninput="saveCurrentState(); renderOutput();">
         </div>
         <div class="form-group">
-          <label>團練 / 組別配速備註 (Pace & Group Notes)</label>
-          <textarea id="groupNotes" placeholder="例：A 3:55-4:05 Frankie/ANDY&#10;B1 3:50-4:05 Patrick..." oninput="saveCurrentState(); renderOutput();"></textarea>
+          <label>組別 / 配速備註 (Pace Notes)</label>
+          <textarea id="groupNotes" placeholder="例：A組 3:55-4:05..." oninput="saveCurrentState(); renderOutput();"></textarea>
         </div>
         <div class="form-group">
-          <label>教練叮嚀 (Coach Reminders)</label>
-          <input type="text" id="coachTips" value="進行Program 中 每組記住同步守穩 方便我在Training peak 觀察各組配速" oninput="saveCurrentState(); renderOutput();">
+          <label>教練提醒 (Tips)</label>
+          <input type="text" id="coachTips" oninput="saveCurrentState(); renderOutput();">
         </div>
       </div>
 
-      <!-- Weekly Days Input -->
+      <!-- Days Schedule -->
       <div class="panel" style="margin-bottom: 1.5rem;">
         <div class="panel-header">
-          <span class="panel-title">📅 每日訓練編排 (Weekly Days)</span>
+          <span class="panel-title">📅 每日訓練編排</span>
         </div>
         <div id="daysContainer"></div>
       </div>
 
-      <!-- Custom Program Library Manager -->
+      <!-- Library Panel -->
       <div class="panel">
         <div class="panel-header">
-          <span class="panel-title">📦 雲端同步 Program 常用庫</span>
-          <button class="btn btn-outline btn-sm" onclick="fetchFromGoogleSheets()">🔄 重新整理</button>
+          <span class="panel-title">📦 雲端 Program 常用庫</span>
         </div>
-        <div class="section-block">
-          <div class="section-block-title">➕ 新增 Program 到雲端庫</div>
+        <div style="background:#fafafa; border:1px solid var(--border); padding:0.85rem; border-radius:8px; margin-bottom:1rem;">
           <div class="form-group">
             <input type="text" id="newLibTitle" placeholder="Program 名稱 (例: 5x6min 門檻跑)">
           </div>
           <div class="form-group">
-            <textarea id="newLibDesc" placeholder="內容詳情 (例: Easy 15min&#10;5x6min (5km pace/+15-20s)&#10;Easy 90sec&#10;Warm down to 60min)"></textarea>
+            <textarea id="newLibDesc" placeholder="內容詳情..."></textarea>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="addLibraryProgram()">☁️ 儲存至 Google Sheets</button>
+          <button class="btn btn-primary btn-sm" onclick="addLibraryProgram()">☁️ 新增至常用庫</button>
         </div>
-
         <div id="libraryList"></div>
       </div>
-
     </div>
 
-    <!-- RIGHT PANEL: PREVIEW & COPY -->
+    <!-- RIGHT PANEL -->
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-title">📱 複製預覽區 (Preview for Copying)</span>
-        <button class="btn btn-success btn-sm" onclick="copyTextToClipboard()">📋 複製完整課表</button>
+        <span class="panel-title">📱 複製預覽區</span>
+        <button class="btn btn-success btn-sm" onclick="copyTextToClipboard()">📋 複製此班別課表</button>
       </div>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-        此處呈現純文字排版，一鍵複製後可直接貼到 WhatsApp / Signal / Line 傳給學員。
-      </p>
       <div class="preview-box" id="previewBox"></div>
     </div>
 
   </div>
 
-  <div class="toast" id="toast">已成功複製到剪貼簿！</div>
+  <div class="toast" id="toast">訊息提示</div>
 
   <script>
     const weekDays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 
-    const defaultLibrary = [
-      {
-        id: 'p1',
-        title: '間歇 Run (10x2:30min)',
-        content: `Easy 15min
-5x30sec
-
-10x2:30min
-Easy 75s
-
-A 3:55-4:05 Frankie/ANDY
-B1 3:50-4:05 Patrick
-B2 4:15-4:25 Ken
-
-8x2:30min
-Easy 90s
-
-C. 500-5:10
-D 5:10-5:25
-
-Easy 10-15min`
-      },
-      {
-        id: 'p2',
-        title: '門檻跑 (5x6min)',
-        content: `Easy 15min
-
-5x6min (5km pace/+15-20s)
-Easy 90sec
-
-Warm down to 60min`
-      },
-      {
-        id: 'p3',
-        title: '輕鬆跑 (Easy 40-60min)',
-        content: `Easy 40-60min`
-      },
-      {
-        id: 'p4',
-        title: '休息日 (Off Day)',
-        content: `Off`
-      }
+    let classesData = [
+      { id: 'c1', className: 'A 班 (進階)', title: '🏃 Week Training Program', groupNotes: 'A組 3:55-4:05\nB組 4:15-4:25', coachTips: '請保持穩步', days: createEmptyDays() },
+      { id: 'c2', className: 'B 班 (基礎)', title: '🏃 Week Training Program', groupNotes: 'C組 5:00-5:15', coachTips: '著重體能恢復', days: createEmptyDays() }
     ];
-
+    
+    let activeClassId = 'c1';
     let programLibrary = [];
-    let daysData = [];
     let apiUrl = '';
 
-    function initUI() {
+    function createEmptyDays() {
+      return weekDays.map(day => ({ dayName: day, selectedLibId: '', customContent: '' }));
+    }
+
+    function init() {
       apiUrl = localStorage.getItem('gsheet_api_url') || '';
       document.getElementById('apiUrlInput').value = apiUrl;
-      
       updateStatusTag();
-      loadActiveState();
 
-      if (apiUrl) {
-        fetchFromGoogleSheets();
-      } else {
-        programLibrary = [...defaultLibrary];
-        renderLibrary();
-        renderDaysInputs();
+      renderTabs();
+      loadActiveTabData();
+
+      if (apiUrl) fetchFromGoogleSheets();
+    }
+
+    function saveCurrentState() {
+      const activeClass = classesData.find(c => c.id === activeClassId);
+      if (activeClass) {
+        activeClass.title = document.getElementById('programTitle').value;
+        activeClass.groupNotes = document.getElementById('groupNotes').value;
+        activeClass.coachTips = document.getElementById('coachTips').value;
+      }
+    }
+
+    function renderTabs() {
+      const container = document.getElementById('tabsContainer');
+      container.innerHTML = '';
+
+      classesData.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${c.id === activeClassId ? 'active' : ''}`;
+        btn.textContent = c.className;
+        btn.onclick = () => switchTab(c.id);
+        container.appendChild(btn);
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'tab-add-btn';
+      addBtn.textContent = '＋ 新增班別';
+      addBtn.onclick = addNewClass;
+      container.appendChild(addBtn);
+    }
+
+    function switchTab(id) {
+      saveCurrentState();
+      activeClassId = id;
+      renderTabs();
+      loadActiveTabData();
+    }
+
+    function addNewClass() {
+      const name = prompt('請輸入新班別名稱：', '新班別');
+      if (!name) return;
+      const newId = 'c_' + Date.now();
+      classesData.push({
+        id: newId,
+        className: name,
+        title: '🏃 Week Training Program',
+        groupNotes: '',
+        coachTips: '',
+        days: createEmptyDays()
+      });
+      switchTab(newId);
+    }
+
+    function deleteCurrentClass() {
+      if (classesData.length <= 1) {
+        return alert('最少需要保留一個班別！');
+      }
+      if (confirm('確定要刪除目前的班別嗎？')) {
+        classesData = classesData.filter(c => c.id !== activeClassId);
+        activeClassId = classesData[0].id;
+        renderTabs();
+        loadActiveTabData();
+      }
+    }
+
+    function updateClassName(newName) {
+      const activeClass = classesData.find(c => c.id === activeClassId);
+      if (activeClass) {
+        activeClass.className = newName;
+        renderTabs();
+        saveCurrentState();
         renderOutput();
       }
     }
 
-    function saveApiUrl() {
-      const url = document.getElementById('apiUrlInput').value.trim();
-      localStorage.setItem('gsheet_api_url', url);
-      apiUrl = url;
-      updateStatusTag();
-      showToast('已儲存 API 網址！');
-      if (apiUrl) {
-        fetchFromGoogleSheets();
-      }
-    }
+    function loadActiveTabData() {
+      const activeClass = classesData.find(c => c.id === activeClassId);
+      if (!activeClass) return;
 
-    function updateStatusTag() {
-      const tag = document.getElementById('statusTag');
-      if (apiUrl) {
-        tag.className = 'status-tag status-online';
-        tag.textContent = '☁️ 雲端同步已連線';
-      } else {
-        tag.className = 'status-tag status-offline';
-        tag.textContent = '⚠️ 請設定 Google API 網址';
-      }
-    }
+      document.getElementById('classNameInput').value = activeClass.className;
+      document.getElementById('programTitle').value = activeClass.title || '';
+      document.getElementById('groupNotes').value = activeClass.groupNotes || '';
+      document.getElementById('coachTips').value = activeClass.coachTips || '';
 
-    function loadActiveState() {
-      const savedState = localStorage.getItem('coach_schedule_state_gs');
-      if (savedState) {
-        try {
-          const parsed = JSON.parse(savedState);
-          document.getElementById('programTitle').value = parsed.title || '🏃 Week Training Program';
-          document.getElementById('groupNotes').value = parsed.groupNotes || '';
-          document.getElementById('coachTips').value = parsed.coachTips || '';
-          daysData = parsed.daysData || createEmptyDays();
-        } catch(e) {
-          daysData = createEmptyDays();
-        }
-      } else {
-        daysData = createEmptyDays();
-      }
-    }
-
-    function saveCurrentState() {
-      const state = {
-        title: document.getElementById('programTitle').value,
-        groupNotes: document.getElementById('groupNotes').value,
-        coachTips: document.getElementById('coachTips').value,
-        daysData: daysData
-      };
-      localStorage.setItem('coach_schedule_state_gs', JSON.stringify(state));
-    }
-
-    function createEmptyDays() {
-      return weekDays.map(day => ({
-        dayName: day,
-        selectedLibId: '',
-        customContent: ''
-      }));
-    }
-
-    // Google Sheets API Operations
-    async function fetchFromGoogleSheets() {
-      if (!apiUrl) {
-        alert('請先在頂部輸入 Google Apps Script 網址！');
-        return;
-      }
-
-      showSpinner(true);
-      try {
-        const resp = await fetch(apiUrl);
-        const data = await resp.json();
-        if (Array.isArray(data)) {
-          programLibrary = data;
-          renderLibrary();
-          renderDaysInputs();
-          renderOutput();
-          showToast('已成功從 Google Sheets 同步雲端 Program 庫！');
-        }
-      } catch (err) {
-        console.error(err);
-        alert('讀取 Google Sheets 失敗，請確認 API 網址及部署權限設定為「所有人 (Anyone)」。');
-      } finally {
-        showSpinner(false);
-      }
-    }
-
-    async function addLibraryProgram() {
-      const title = document.getElementById('newLibTitle').value.trim();
-      const desc = document.getElementById('newLibDesc').value.trim();
-
-      if (!title || !desc) {
-        alert('請填寫 Program 名稱及內容！');
-        return;
-      }
-
-      const newObj = {
-        id: 'p_' + Date.now(),
-        title: title,
-        content: desc
-      };
-
-      if (!apiUrl) {
-        // Fallback to local
-        programLibrary.push(newObj);
-        document.getElementById('newLibTitle').value = '';
-        document.getElementById('newLibDesc').value = '';
-        renderLibrary();
-        renderDaysInputs();
-        showToast('已暫存到本地 (請填寫 API 網址以同步到雲端)');
-        return;
-      }
-
-      showSpinner(true);
-      try {
-        await fetch(apiUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add', ...newObj })
-        });
-
-        document.getElementById('newLibTitle').value = '';
-        document.getElementById('newLibDesc').value = '';
-
-        // Refresh from cloud after a short delay
-        setTimeout(fetchFromGoogleSheets, 1200);
-      } catch (err) {
-        console.error(err);
-        alert('寫入 Google Sheets 失敗，請再試一次。');
-        showSpinner(false);
-      }
-    }
-
-    async function deleteLibraryProgram(id) {
-      if (!confirm('確定要從雲端刪除這個 Program 嗎？')) return;
-
-      if (!apiUrl) {
-        programLibrary = programLibrary.filter(p => p.id !== id);
-        renderLibrary();
-        renderDaysInputs();
-        return;
-      }
-
-      showSpinner(true);
-      try {
-        await fetch(apiUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'delete', id: id })
-        });
-
-        setTimeout(fetchFromGoogleSheets, 1200);
-      } catch (err) {
-        console.error(err);
-        alert('刪除失敗，請再試一次。');
-        showSpinner(false);
-      }
+      renderDaysInputs();
+      renderOutput();
     }
 
     function renderDaysInputs() {
+      const activeClass = classesData.find(c => c.id === activeClassId);
       const container = document.getElementById('daysContainer');
       container.innerHTML = '';
 
-      daysData.forEach((d, index) => {
+      activeClass.days.forEach((d, idx) => {
         const card = document.createElement('div');
         card.className = 'day-card';
         card.innerHTML = `
           <div class="day-card-header">
             <span class="day-name">${d.dayName}</span>
-            <button class="btn btn-outline btn-sm" onclick="clearDay(${index})">清空</button>
+            <button class="btn btn-outline btn-sm" onclick="clearDay(${idx})">清空</button>
           </div>
           <div class="form-group">
-            <label>快速選取雲端 Program 庫</label>
-            <select onchange="onSelectProgramForDay(${index}, this.value)">
-              <option value="">-- 自訂 / 選擇範本 --</option>
+            <select onchange="onSelectProgramForDay(${idx}, this.value)">
+              <option value="">-- 套用雲端 Program --</option>
               ${programLibrary.map(p => `<option value="${p.id}" ${d.selectedLibId === p.id ? 'selected' : ''}>${p.title}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
-            <label>訓練內容 (可自由修改內容)</label>
-            <textarea id="day-text-${index}" oninput="onDayTextChange(${index}, this.value)" placeholder="輸入課表內容...">${d.customContent}</textarea>
+            <textarea id="day-text-${idx}" oninput="onDayTextChange(${idx}, this.value)" placeholder="課表內容...">${d.customContent}</textarea>
           </div>
         `;
         container.appendChild(card);
       });
     }
 
-    function renderLibrary() {
-      const libContainer = document.getElementById('libraryList');
-      libContainer.innerHTML = '';
-
-      if (programLibrary.length === 0) {
-        libContainer.innerHTML = '<div style="font-size:0.85rem; color: var(--text-muted); text-align:center; padding: 1rem;">常用庫目前沒有 Program，請在上方新增！</div>';
-        return;
-      }
-
-      programLibrary.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'lib-item';
-        div.innerHTML = `
-          <div class="lib-info">
-            <div class="lib-title">${item.title}</div>
-            <div class="lib-desc">${item.content}</div>
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="deleteLibraryProgram('${item.id}')">刪除</button>
-        `;
-        libContainer.appendChild(div);
-      });
-    }
-
     function onSelectProgramForDay(dayIndex, libId) {
-      daysData[dayIndex].selectedLibId = libId;
+      const activeClass = classesData.find(c => c.id === activeClassId);
+      activeClass.days[dayIndex].selectedLibId = libId;
       const found = programLibrary.find(p => p.id === libId);
-      if (found) {
-        daysData[dayIndex].customContent = found.content;
-      }
+      if (found) activeClass.days[dayIndex].customContent = found.content;
+      
       saveCurrentState();
       renderDaysInputs();
       renderOutput();
     }
 
     function onDayTextChange(dayIndex, value) {
-      daysData[dayIndex].customContent = value;
+      const activeClass = classesData.find(c => c.id === activeClassId);
+      activeClass.days[dayIndex].customContent = value;
       saveCurrentState();
       renderOutput();
     }
 
     function clearDay(dayIndex) {
-      daysData[dayIndex].selectedLibId = '';
-      daysData[dayIndex].customContent = '';
+      const activeClass = classesData.find(c => c.id === activeClassId);
+      activeClass.days[dayIndex].selectedLibId = '';
+      activeClass.days[dayIndex].customContent = '';
       saveCurrentState();
       renderDaysInputs();
       renderOutput();
     }
 
     function renderOutput() {
-      const title = document.getElementById('programTitle').value.trim();
-      const groupNotes = document.getElementById('groupNotes').value.trim();
-      const coachTips = document.getElementById('coachTips').value.trim();
+      const activeClass = classesData.find(c => c.id === activeClassId);
+      if (!activeClass) return;
 
-      let text = '';
+      let text = `=========================\n📌【${activeClass.className}】\n${activeClass.title}\n=========================\n\n`;
 
-      if (title) {
-        text += `=========================
-${title}
-=========================
-
-`;
-      }
-
-      daysData.forEach(d => {
-        text += `【${d.dayName}】
-`;
-        if (d.customContent.trim()) {
-          text += `${d.customContent.trim()}
-`;
-        } else {
-          text += `Off / 休息
-`;
-        }
-        text += `
--------------------------
-`;
+      activeClass.days.forEach(d => {
+        text += `【${d.dayName}】\n${d.customContent.trim() ? d.customContent.trim() : 'Off / 休息'}\n\n-------------------------\n`;
       });
 
-      if (groupNotes) {
-        text += `
-【👥 各組配速 / 名單備註】
-${groupNotes}
-`;
-      }
-
-      if (coachTips) {
-        text += `
-【💡 教練提醒】
-${coachTips}
-`;
-      }
+      if (activeClass.groupNotes.trim()) text += `\n【👥 配速/名單備註】\n${activeClass.groupNotes}\n`;
+      if (activeClass.coachTips.trim()) text += `\n【💡 教練提醒】\n${activeClass.coachTips}\n`;
 
       document.getElementById('previewBox').textContent = text;
     }
 
-    function loadSampleData() {
-      document.getElementById('programTitle').value = '🏃 本週訓練 Program (Coach Plan)';
-      document.getElementById('groupNotes').value = `A 3:55-4:05 Frankie/ANDY
-B1 3:50-4:05 Patrick
-B2 4:15-4:25 Ken
-C. 500-5:10
-D 5:10-5:25`;
-      document.getElementById('coachTips').value = `進行Program 中 每組記住同步守穩 方便我在Training peak 觀察各組配速`;
+    /* Google Sheets API Operations */
+    function saveApiUrl() {
+      apiUrl = document.getElementById('apiUrlInput').value.trim();
+      localStorage.setItem('gsheet_api_url', apiUrl);
+      updateStatusTag();
+      showToast('已儲存 API 網址！');
+      if (apiUrl) fetchFromGoogleSheets();
+    }
 
-      daysData[0].customContent = `Easy 15min
-5x30sec
+    function updateStatusTag() {
+      const tag = document.getElementById('statusTag');
+      tag.className = apiUrl ? 'status-tag status-online' : 'status-tag status-offline';
+      tag.textContent = apiUrl ? '☁️ 雲端同步已連線' : '⚠️ 請設定 Web App 網址';
+    }
 
-10x2:30min
-Easy 75s
+    async function fetchFromGoogleSheets() {
+      if (!apiUrl) return;
+      document.getElementById('loadingSpinner').style.display = 'inline';
+      try {
+        const resp = await fetch(apiUrl);
+        const resData = await resp.json();
+        
+        if (resData.programs) programLibrary = resData.programs;
+        if (resData.classes && resData.classes.length > 0) {
+          classesData = resData.classes;
+          activeClassId = classesData[0].id;
+        }
 
-8x2:30min
-Easy 90s
+        renderLibrary();
+        renderTabs();
+        loadActiveTabData();
+        showToast('已成功從雲端同步最新資料！');
+      } catch (err) {
+        console.error(err);
+        alert('同步失敗，請檢查 Apps Script Web App URL 是否正確。');
+      } finally {
+        document.getElementById('loadingSpinner').style.display = 'none';
+      }
+    }
 
-Easy 10-15min`;
-      daysData[1].customContent = `Easy 40-60min`;
-      daysData[2].customContent = `Easy 40-60min`;
-      daysData[3].customContent = `Off`;
-      daysData[4].customContent = `Easy 15min
-
-5x6min (5km pace/+15-20s)
-Easy 90sec
-
-Warm down to 60min`;
-      daysData[5].customContent = `Easy 40min`;
-      daysData[6].customContent = `Off / Rest Day`;
-
+    async function syncClassesToCloud() {
+      if (!apiUrl) return alert('請先填寫並儲存 Apps Script Web App 網址！');
       saveCurrentState();
-      renderDaysInputs();
-      renderOutput();
+      
+      showToast('正在儲存班別課表至雲端...');
+      try {
+        await fetch(apiUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_classes', classes: classesData })
+        });
+        showToast('✅ 班別與課表已成功儲存至雲端！');
+      } catch (e) {
+        alert('儲存失敗：' + e.message);
+      }
+    }
+
+    async function addLibraryProgram() {
+      const title = document.getElementById('newLibTitle').value.trim();
+      const desc = document.getElementById('newLibDesc').value.trim();
+      if (!title || !desc) return alert('請填寫 Program 名稱及內容');
+
+      const newObj = { id: 'p_' + Date.now(), title, content: desc };
+
+      if (apiUrl) {
+        await fetch(apiUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add_program', ...newObj })
+        });
+        setTimeout(fetchFromGoogleSheets, 1200);
+      } else {
+        programLibrary.push(newObj);
+        renderLibrary();
+        renderDaysInputs();
+      }
+      document.getElementById('newLibTitle').value = '';
+      document.getElementById('newLibDesc').value = '';
+    }
+
+    async function deleteLibraryProgram(id) {
+      if (!confirm('確定刪除這個常用 Program？')) return;
+      if (apiUrl) {
+        await fetch(apiUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_program', id })
+        });
+        setTimeout(fetchFromGoogleSheets, 1200);
+      } else {
+        programLibrary = programLibrary.filter(p => p.id !== id);
+        renderLibrary();
+        renderDaysInputs();
+      }
+    }
+
+    function renderLibrary() {
+      const libContainer = document.getElementById('libraryList');
+      libContainer.innerHTML = programLibrary.map(item => `
+        <div class="lib-item">
+          <div>
+            <div class="lib-title">${item.title}</div>
+            <div class="lib-desc">${item.content}</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteLibraryProgram('${item.id}')">刪除</button>
+        </div>
+      `).join('');
     }
 
     function copyTextToClipboard() {
       const text = document.getElementById('previewBox').textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('已成功複製到剪貼簿！');
-      }).catch(err => {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showToast('已成功複製到剪貼簿！');
-      });
+      navigator.clipboard.writeText(text).then(() => showToast('已成功複製到剪貼簿！'));
     }
 
-    function showToast(msg = '已成功複製到剪貼簿！') {
+    function showToast(msg) {
       const toast = document.getElementById('toast');
       toast.textContent = msg;
       toast.style.display = 'block';
-      setTimeout(() => {
-        toast.style.display = 'none';
-      }, 2000);
+      setTimeout(() => toast.style.display = 'none', 2500);
     }
 
-    function showSpinner(show) {
-      document.getElementById('loadingSpinner').style.display = show ? 'inline' : 'none';
-    }
-
-    // Initialize
-    initUI();
+    init();
   </script>
 </body>
 </html>
